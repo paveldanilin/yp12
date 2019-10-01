@@ -13,6 +13,5 @@ node_modules
 .DS_Store
 .idea
 
-dist
-
+app.js
 package-lock.json
