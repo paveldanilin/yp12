@@ -1,33 +1,32 @@
 const usersRouter = require('express').Router();
-const fs = require('fs');
-const path = require('path');
+const logger = require('../logger');
+const serializer = require('../serializer');
+const FileUserProvider = require('../models/user/file-provider');
 
-function getUsersData() {
-  let filePath = path.resolve(`${__dirname }/../../data/users.json`);
-  if (process.env.NODE_ENV === 'production') {
-    filePath = './data/users.json';
-  }
-  return JSON.parse(fs.readFileSync(filePath));
-}
+const userProvider = new FileUserProvider(serializer.instance);
+
+const providerErrorHandler = (e, res) => {
+  logger.instance.error(`Could not read users data file. Reason: ${e.toString()}`);
+  res.status(500).send({ error: e.toString() });
+};
 
 usersRouter.get('/users', (req, res) => {
-
-  res.send(getUsersData());
+  userProvider.load(
+    (e) => providerErrorHandler(e, res),
+    (users) => res.send(serializer.instance.serialize(users, 'User')),
+  );
 });
 
 usersRouter.get('/users/:id', (req, res) => {
-  const uid = req.params.id;
-
-  const usersCollection = getUsersData();
-
-  // eslint-disable-next-line no-underscore-dangle,no-shadow,array-callback-return
-  const user = usersCollection.filter((user) => user._id === uid);
-
-  if (user.length === 0) {
-    res.status(404).send({ message: 'Нет пользователя с таким id' });
-  } else {
-    res.send(user[0]);
-  }
+  userProvider.load((e) => providerErrorHandler(e, res), (users) => {
+    const foundUsers = users.findBy({ id: req.params.id });
+    if (foundUsers.size() === 0) {
+      logger.instance.warn(`User with id ${req.params.id} not found`);
+      res.status(404).send({ message: 'Нет пользователя с таким id' });
+    } else {
+      res.status(200).send(serializer.instance.serialize(foundUsers.get(0), 'User'));
+    }
+  });
 });
 
 module.exports = usersRouter;
