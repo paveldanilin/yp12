@@ -1,19 +1,20 @@
 const cardsRouter = require('express').Router();
-const fs = require('fs');
-const path = require('path');
+const logger = require('../logger');
+const serializer = require('../serializer');
+const FileCardProvider = require('../models/card/file-provider');
 
-function getCardsData() {
-  let filePath = path.resolve(`${__dirname }/../../data/cards.json`);
-  if (process.env.NODE_ENV === 'production') {
-    filePath = './data/cards.json';
-  }
-  return JSON.parse(fs.readFileSync(filePath));
-}
+const userProvider = new FileCardProvider(serializer.instance);
 
-const cardsList = (req, res) => {
-  res.send(getCardsData());
+const providerErrorHandler = (e, res) => {
+  logger.instance.error(`Could not read cards data file. Reason: ${e.toString()}`);
+  res.status(500).send({ error: e.toString() });
 };
 
-cardsRouter.get('/cards', cardsList);
+cardsRouter.get('/cards', (req, res) => {
+  userProvider.load(
+    (e) => providerErrorHandler(e, res),
+    (cards) => res.send(serializer.instance.serialize(cards, 'Card')),
+  );
+});
 
 module.exports = cardsRouter;
