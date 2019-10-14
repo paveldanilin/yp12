@@ -42,6 +42,9 @@ class BaseCollection {
    * @returns {boolean}
    */
   remove(value) {
+    if (value === null) {
+      throw new Error('NULL is an unexpected value');
+    }
     if (typeof value === 'object') {
       return this.removeByPredicate(value);
     }
@@ -73,6 +76,10 @@ class BaseCollection {
     const beforeLength = this.items.length;
     this.items = this.items.filter((item) => !this.checkPredicate(predicate, item));
     return this.items.length !== beforeLength;
+  }
+
+  findOneBy(value) {
+    return this.findBy(value).get(0) || null;
   }
 
   findBy(value) {
