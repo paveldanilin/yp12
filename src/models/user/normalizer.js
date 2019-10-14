@@ -24,7 +24,7 @@ class UserNormalizer extends BaseNormalizer {
 
   // eslint-disable-next-line
   supportDenormalization(data) {
-    // eslint-disable-next-line no-underscore-dangle
+    // eslint-disable-next-line
     return (data._id || data.id) && data.name;
   }
 
@@ -32,7 +32,7 @@ class UserNormalizer extends BaseNormalizer {
   doDenormalize(data) {
     // TODO: Check is data suitable for demoralization?
     return User.create({
-      // eslint-disable-next-line no-underscore-dangle
+      // eslint-disable-next-line
       id: data._id || data.id || null,
       name: data.name,
       about: data.about,

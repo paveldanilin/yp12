@@ -27,7 +27,7 @@ class CardNormalizer extends BaseNormalizer {
 
   // eslint-disable-next-line class-methods-use-this
   supportDenormalization(data) {
-    // eslint-disable-next-line no-underscore-dangle
+    // eslint-disable-next-line
     return (data._id || data.id) && data.name && data.owner;
   }
 
@@ -35,7 +35,7 @@ class CardNormalizer extends BaseNormalizer {
   doDenormalize(data, type, serializer) {
     // TODO: Check is data suitable for demoralization?
     return Card.create({
-      // eslint-disable-next-line no-underscore-dangle
+      // eslint-disable-next-line
       id: data._id || data.id || null,
       name: data.name,
       link: data.link,
