@@ -1,14 +1,19 @@
+const cors = require('cors');
+const helmet = require('helmet');
 const express = require('express');
 const bodyParser = require('body-parser');
-const utils = require('./utils');
+const db = require('./db');
 const logger = require('./logger');
-const { loggerMiddleware, routeNotFoundMiddleware } = require('./middlewares');
+const { loggerMiddleware, routeNotFoundMiddleware } = require('./middlewares/middlewares');
+
+db.init();
 
 const { PORT = 3000 } = process.env;
 const app = express();
 
+app.use(helmet());
+app.use(cors());
 app.use(loggerMiddleware);
-app.use(express.static(utils.getPublicPath()));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
