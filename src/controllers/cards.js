@@ -3,7 +3,12 @@ const logger = require('../logger');
 const to = require('../utils/to');
 
 module.exports.getAll = async (req, res) => {
-  const [err, cards] = await to(CardModel.find({}).populate('owner'));
+  const [err, cards] = await to(
+    CardModel
+      .find({}, '-__v')
+      .populate({ path: 'owner', select: '-password -tokens -__v' })
+      .populate({ path: 'likes', select: '-password -tokens -__v' }),
+  );
 
   if (!cards) {
     logger.instance.error(`Could not get cards. Reason: ${err}`);
@@ -14,7 +19,12 @@ module.exports.getAll = async (req, res) => {
 };
 
 module.exports.getById = async (req, res) => {
-  const [err, card] = await to(CardModel.findById(req.params.id));
+  const [err, card] = await to(
+    CardModel
+      .findById(req.params.id)
+      .populate({ path: 'owner', select: '-password -tokens -__v' })
+      .populate({ path: 'likes', select: '-password -tokens -__v' }),
+  );
 
   if (!card) {
     logger.instance.error(`Could not get card with id ${req.params.id}. Reason: ${err}`);
@@ -34,7 +44,7 @@ module.exports.create = async (req, res) => {
     return res.status(500).send({ message: 'Ошибка при создании карточки' });
   }
 
-  return res.status(201).send(card);
+  return res.status(201).send({ id: card._id });
 };
 
 module.exports.delete = async (req, res) => {
@@ -42,7 +52,7 @@ module.exports.delete = async (req, res) => {
   const [err, query] = await to(CardModel.findByIdAndRemove(req.params.id));
 
   if (!query) {
-    logger.instance.error(`Could not delete unknown card ${req.params.id}`);
+    logger.instance.error(`Could not delete unknown card with id ${req.params.id}`);
     return res.status(404).send({ message: 'Карточка не найдена' });
   }
 
@@ -52,28 +62,42 @@ module.exports.delete = async (req, res) => {
 
 
 module.exports.update = async (req, res) => {
-  const [err, query] = await to(
-    CardModel.findByIdAndUpdate(req.params.id, req.body, { runValidators: true }),
-  );
+  // eslint-disable-next-line no-unused-vars,max-len
+  const [err, card] = await to(CardModel.findByIdAndUpdate(req.params.id, req.body, { runValidators: true }));
 
-  if (!query) {
-    logger.instance.error(`Could not update card. Reason: ${err}`);
+  if (!card) {
+    logger.instance.error(`Could not update unknown card with id ${req.params.id}`);
     return res.status(500).send({ message: 'Ошибка обновления карточки' });
   }
 
-  if (query.n === 0) {
-    logger.instance.warn(`Could not update card with id ${req.params.id}`);
-    return res.status(404).send({ message: 'Карточка не существует' });
-  }
+  logger.instance.info(`Card with id ${req.params.id} has been updated`);
+  return res.send(card);
+};
 
-  if (query.nModified === 0) {
-    logger.instance.warn(`Nothing to update at card id ${req.params.id}`);
-    return res.status(304).send();
-  }
-
-  logger.instance.info(
-    `Card with id ${req.params.id} has been updated (nm=${query.nModified})`,
+module.exports.like = async (req, res) => {
+  const [err, card] = await to(
+    CardModel.findByIdAndUpdate(
+      req.params.id, { $addToSet: { likes: req.user._id } }, { new: true },
+    ),
   );
 
-  return res.send({ message: 'Карточка обновлена' });
+  if (!card) {
+    logger.instance.error(`Could not set like on card ${req.params.id}, Reason: ${err}`);
+    return res.status(500).send({ message: 'Ошибка установки лайка' });
+  }
+
+  return res.send(card);
+};
+
+module.exports.dislike = async (req, res) => {
+  const [err, card] = await to(
+    CardModel.findByIdAndUpdate(req.params.id, { $pull: { likes: req.user._id } }, { new: true }),
+  );
+
+  if (!card) {
+    logger.instance.error(`Could not remove like on card ${req.param.id}. Reason: ${err}`);
+    return res.status(500).send({ message: 'Ошибка снятия лайка' });
+  }
+
+  return res.send(card);
 };

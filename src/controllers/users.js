@@ -3,7 +3,7 @@ const logger = require('../logger');
 const to = require('../utils/to');
 
 module.exports.getAll = async (req, res) => {
-  const [err, users] = await to(UserModel.find({}));
+  const [err, users] = await to(UserModel.find({}, '-password -tokens'));
 
   if (!users) {
     logger.instance.error(`Could not get users. Reason: ${err}`);
@@ -14,7 +14,7 @@ module.exports.getAll = async (req, res) => {
 };
 
 module.exports.getById = async (req, res) => {
-  const [err, user] = await to(UserModel.findById(req.params.id));
+  const [err, user] = await to(UserModel.findById(req.params.id, '-password -tokens'));
 
   if (!user) {
     logger.instance.error(`Could not get user with id ${req.params.id}. Reason: ${err}`);
@@ -32,53 +32,56 @@ module.exports.create = async (req, res) => {
     return res.status(500).send({ message: 'Ошибка при создании пользователя' });
   }
 
-  return res.status(201).send(user);
+  const token = await user.createToken();
+
+  return res.status(201).send({ user, token });
 };
 
 module.exports.delete = async (req, res) => {
-  const [err, query] = await to(UserModel.deleteOne({ _id: req.params.id }));
+  // eslint-disable-next-line no-unused-vars
+  const [err, query] = await to(UserModel.findByIdAndRemove(req.params.id));
 
   if (!query) {
-    logger.instance.error(`Could not delete user. Reason: ${err}`);
+    logger.instance.error(`Could not delete unknown user with id ${req.param.id}`);
     return res.status(500).send({ message: 'Ошибка удаления пользователя' });
   }
 
-  if (query.deletedCount === 0) {
-    logger.instance.warn(`Could not delete user with id ${req.params.id}`);
-    return res.status(404).send({ message: 'Пользователь не существует' });
-  }
-
-  logger.instance.info(
-    `User with id ${req.params.id} has been deleted (dc=${query.deletedCount})`,
-  );
-
+  logger.instance.info(`User with id ${req.params.id} has been deleted`);
   return res.send({ message: 'Пользователь удален' });
 };
 
 
 module.exports.update = async (req, res) => {
-  const [err, query] = await to(
-    UserModel.updateOne({ _id: req.params.id }, req.body),
-  );
+  // eslint-disable-next-line no-unused-vars
+  const [err, user] = await to(UserModel.findByIdAndUpdate(req.params.id, req.body));
 
-  if (!query) {
-    logger.instance.error(`Could not update user. Reason: ${err}`);
+  if (!user) {
+    logger.instance.error(`Could not update unknown user with id ${req.params.id}`);
     return res.status(500).send({ message: 'Ошибка обновления пользователя' });
   }
 
-  if (query.n === 0) {
-    logger.instance.warn(`Could not update user with id ${req.params.id}`);
-    return res.status(404).send({ message: 'Пользователь не существует' });
+  logger.instance.info(`User with id ${req.params.id} has been updated`);
+  return res.send(user);
+};
+
+module.exports.login = async (req, res) => {
+  const { name, password } = req.body;
+  let user = null;
+  let token = null;
+
+  try {
+    user = await UserModel.loadUserByCredentials(name, password);
+  } catch (e) {
+    logger.instance.error(`Could not login user, ${e.toString()}`);
+    return res.status(401).send({ message: 'Неизвестный пользователь' });
   }
 
-  if (query.nModified === 0) {
-    logger.instance.warn(`Nothing to update at user id ${req.params.id}`);
-    return res.status(304).send();
+  try {
+    token = await user.createToken();
+  } catch (e) {
+    logger.instance.error('Could not create token');
+    return res.status(500).send({ message: 'Ошибка генерации токена' });
   }
 
-  logger.instance.info(
-    `User with id ${req.params.id} has been updated (nm=${query.nModified})`,
-  );
-
-  return res.send({ message: 'Пользователь обновлен' });
+  return res.send({ user, token });
 };

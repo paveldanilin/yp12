@@ -5,11 +5,10 @@
   "main": "app.js",
   "scripts": {
     "lint": "eslint src",
-    "test": "jest --config jest.config.json --forceExit",
     "build-prod": "webpack --config webpack.prod.js",
     "build-dev": "webpack --config webpack.dev.js",
     "start": "npm run-script build-prod && node ./app.js",
-    "dev": "nodemon ./src/app.js"
+    "dev": "env-cmd -f ./.env nodemon ./src/app.js"
   },
   "dependencies": {
     "express": "4.17.1",
@@ -19,7 +18,11 @@
     "winston": "3.2.1",
     "webpack-node-externals": "1.7.2",
     "moment-timezone": "0.5.26",
-    "mongoose": "5.7.4"
+    "mongoose": "5.7.4",
+    "bcryptjs": "2.4.3",
+    "validator": "11.1.0",
+    "jsonwebtoken": "8.5.1",
+    "env-cmd": "10.0.1"
   },
   "devDependencies": {
     "eslint": "6.5.0",
@@ -27,8 +30,7 @@
     "eslint-plugin-import": "2.18.2",
     "webpack": "4.41.0",
     "webpack-cli": "3.3.9",
-    "nodemon": "1.19.3",
-    "mocha": "6.2.1"
+    "nodemon": "1.19.3"
   },
   "author": "",
   "license": "ISC"
