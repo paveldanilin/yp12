@@ -2,7 +2,7 @@
 
 .env
 - MONGODB_MESTODB_URL=mongodb://localhost:27017/mestodb
-- JWT_KEY=<your-security-key>
+- JWT_KEY=your secret key
 - PORT=3000
 
 Dev 
