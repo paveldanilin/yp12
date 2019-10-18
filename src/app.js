@@ -16,6 +16,16 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(logReq);
+
+// вставьте сюда _id созданного в предыдущем пункте пользователя
+app.use((req, res, next) => {
+  const yourTestUserId = '';
+  req.user = {
+    _id: process.env.TEST_USER_ID || yourTestUserId,
+  };
+  next();
+});
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cardRoutes);

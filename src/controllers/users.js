@@ -39,7 +39,7 @@ async function getUserById(req, res) {
 async function createUser(req, res) {
   const isUserExists = await usernameExists(req.body.name);
   if (isUserExists) {
-    return res.status(404).send({ message: 'Пользователь с таким именем уже существует' });
+    return res.status(400).send({ message: 'Пользователь с таким именем уже существует' });
   }
   const [err, user] = await to(UserModel.create(req.body));
   if (!user) {
