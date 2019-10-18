@@ -61,7 +61,9 @@ async function deleteCard(req, res) {
 
 
 async function updateCard(req, res) {
-  const [, card] = await to(CardModel.findByIdAndUpdate(req.params.id, req.body, { runValidators: true }));
+  const [, card] = await to(
+    CardModel.findByIdAndUpdate(req.params.id, req.body, { runValidators: true }),
+  );
 
   if (!card) {
     logger.instance.error(`Could not update unknown card with id ${req.params.id}`);

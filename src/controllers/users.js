@@ -2,7 +2,7 @@ const UserModel = require('../models/user');
 const logger = require('../logger');
 const to = require('../utils/to');
 
-module.exports.getAll = async (req, res) => {
+async function getAllUsers(req, res) {
   const [err, users] = await to(UserModel.find({}, '-password -tokens'));
 
   if (!users) {
@@ -11,9 +11,9 @@ module.exports.getAll = async (req, res) => {
   }
 
   return res.send(users);
-};
+}
 
-module.exports.getById = async (req, res) => {
+async function getUserById(req, res) {
   const [err, user] = await to(UserModel.findById(req.params.id, '-password -tokens'));
 
   if (!user) {
@@ -22,38 +22,31 @@ module.exports.getById = async (req, res) => {
   }
 
   return res.send(user);
-};
+}
 
-module.exports.create = async (req, res) => {
+async function createUser(req, res) {
   const [err, user] = await to(UserModel.create(req.body));
-
   if (!user) {
     logger.instance.error(`Could not create user. Reason: ${err}`);
     return res.status(500).send({ message: 'Ошибка при создании пользователя' });
   }
-
   const token = await user.createToken();
-
   return res.status(201).send({ user, token });
-};
+}
 
-module.exports.delete = async (req, res) => {
-  // eslint-disable-next-line no-unused-vars
-  const [err, query] = await to(UserModel.findByIdAndRemove(req.params.id));
-
+async function deleteUser(req, res) {
+  const [, query] = await to(UserModel.findByIdAndRemove(req.params.id));
   if (!query) {
     logger.instance.error(`Could not delete unknown user with id ${req.param.id}`);
     return res.status(500).send({ message: 'Ошибка удаления пользователя' });
   }
-
   logger.instance.info(`User with id ${req.params.id} has been deleted`);
   return res.send({ message: 'Пользователь удален' });
-};
+}
 
 
-module.exports.update = async (req, res) => {
-  // eslint-disable-next-line no-unused-vars
-  const [err, user] = await to(UserModel.findByIdAndUpdate(req.params.id, req.body));
+async function updateUser(req, res) {
+  const [, user] = await to(UserModel.findByIdAndUpdate(req.params.id, req.body));
 
   if (!user) {
     logger.instance.error(`Could not update unknown user with id ${req.params.id}`);
@@ -62,9 +55,9 @@ module.exports.update = async (req, res) => {
 
   logger.instance.info(`User with id ${req.params.id} has been updated`);
   return res.send(user);
-};
+}
 
-module.exports.login = async (req, res) => {
+async function login(req, res) {
   const { name, password } = req.body;
   let user = null;
   let token = null;
@@ -84,4 +77,8 @@ module.exports.login = async (req, res) => {
   }
 
   return res.send({ user, token });
+}
+
+module.exports = {
+  getAllUsers, getUserById, createUser, deleteUser, updateUser, login,
 };
