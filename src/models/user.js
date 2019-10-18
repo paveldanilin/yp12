@@ -56,18 +56,20 @@ schema.methods.createToken = async function () {
 };
 
 schema.statics.loadUserByCredentials = async (name, password) => {
-  // eslint-disable-next-line no-use-before-define
-  const user = await UserModel.findOne({ name });
-
+  const user = await this.findOne({ name });
   if (!user) {
     throw new Error('Invalid login credentials');
   }
   const isPasswordMatch = await bcrypt.compare(password, user.password);
-
   if (!isPasswordMatch) {
     throw new Error('Bad password');
   }
   return user;
+};
+
+schema.statics.loadUserByToken = (token) => {
+  const payload = jwt.verify(token, process.env.JWT_KEY);
+  return this.findOne({ _id: payload._id, 'tokens.token': token });
 };
 
 const UserModel = mongoose.model('User', schema);

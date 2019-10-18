@@ -2,25 +2,25 @@ const cors = require('cors');
 const helmet = require('helmet');
 const express = require('express');
 const bodyParser = require('body-parser');
-const db = require('./db');
 const logger = require('./logger');
-const { loggerMiddleware, routeNotFoundMiddleware } = require('./middlewares/middlewares');
+const logReq = require('./middlewares/logreq');
+const resourceNotFound = require('./middlewares/resourcenotfound');
+const userRoutes = require('./routes/users');
+const cardRoutes = require('./routes/cards');
 
-db.init();
+require('./db').init();
 
 const { PORT = 3000 } = process.env;
 const app = express();
 
 app.use(helmet());
 app.use(cors());
-app.use(loggerMiddleware);
+app.use(logReq);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-app.use(require('./routes/cards'));
-app.use(require('./routes/users'));
-
-app.use(routeNotFoundMiddleware);
+app.use(cardRoutes);
+app.use(userRoutes);
+app.use(resourceNotFound);
 
 app.listen(PORT, () => {
   const startupMsg = {
