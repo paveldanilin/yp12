@@ -76,6 +76,40 @@ async function updateUser(req, res) {
   return res.send(user);
 }
 
+async function patchMe(req, res) {
+  const [err, me] = await to(
+    UserModel.findByIdAndUpdate(
+      req.user._id,
+      req.body,
+      { new: true, runValidators: true },
+    ),
+  );
+
+  if (!me) {
+    logger.instance.error(`Could not update unknown user with id ${req.user._id}.${err}`);
+    return res.status(500).send({ message: 'Ошибка обновления пользователя' });
+  }
+
+  logger.instance.info(`User with id ${req.user._id} has been updated`);
+  return res.send(me);
+}
+
+async function pathMeAvatar(req, res) {
+  const [err, user] = await to(
+    UserModel.findByIdAndUpdate(
+      req.user._id,
+      { avatar: req.body.avatar },
+      { new: true, runValidators: true },
+    ),
+  );
+
+  if (!user) {
+    return res.status(404).send({ message: `Ошибка обновления пользователя. ${err}` });
+  }
+
+  return res.send(user);
+}
+
 async function login(req, res) {
   const { name, password } = req.body;
   let user = null;
@@ -99,5 +133,5 @@ async function login(req, res) {
 }
 
 module.exports = {
-  getAllUsers, getUserById, createUser, deleteUser, updateUser, login,
+  getAllUsers, getUserById, createUser, deleteUser, updateUser, login, patchMe, pathMeAvatar,
 };
