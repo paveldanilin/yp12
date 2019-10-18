@@ -2,7 +2,7 @@ const CardModel = require('../models/card');
 const logger = require('../logger');
 const to = require('../utils/to');
 
-module.exports.getAll = async (req, res) => {
+async function getAllCards(req, res) {
   const [err, cards] = await to(
     CardModel
       .find({}, '-__v')
@@ -16,9 +16,9 @@ module.exports.getAll = async (req, res) => {
   }
 
   return res.send(cards);
-};
+}
 
-module.exports.getById = async (req, res) => {
+async function getCardById(req, res) {
   const [err, card] = await to(
     CardModel
       .findById(req.params.id)
@@ -32,9 +32,9 @@ module.exports.getById = async (req, res) => {
   }
 
   return res.send(card);
-};
+}
 
-module.exports.create = async (req, res) => {
+async function createCard(req, res) {
   const { name, link } = req.body;
 
   const [err, card] = await to(CardModel.create({ name, link, owner: req.user._id }));
@@ -45,11 +45,10 @@ module.exports.create = async (req, res) => {
   }
 
   return res.status(201).send({ id: card._id });
-};
+}
 
-module.exports.delete = async (req, res) => {
-  // eslint-disable-next-line no-unused-vars
-  const [err, query] = await to(CardModel.findByIdAndRemove(req.params.id));
+async function deleteCard(req, res) {
+  const [, query] = await to(CardModel.findByIdAndRemove(req.params.id));
 
   if (!query) {
     logger.instance.error(`Could not delete unknown card with id ${req.params.id}`);
@@ -58,12 +57,11 @@ module.exports.delete = async (req, res) => {
 
   logger.instance.info(`Card with id ${req.params.id} has been deleted`);
   return res.send({ message: 'Карточка удален' });
-};
+}
 
 
-module.exports.update = async (req, res) => {
-  // eslint-disable-next-line no-unused-vars,max-len
-  const [err, card] = await to(CardModel.findByIdAndUpdate(req.params.id, req.body, { runValidators: true }));
+async function updateCard(req, res) {
+  const [, card] = await to(CardModel.findByIdAndUpdate(req.params.id, req.body, { runValidators: true }));
 
   if (!card) {
     logger.instance.error(`Could not update unknown card with id ${req.params.id}`);
@@ -72,9 +70,9 @@ module.exports.update = async (req, res) => {
 
   logger.instance.info(`Card with id ${req.params.id} has been updated`);
   return res.send(card);
-};
+}
 
-module.exports.like = async (req, res) => {
+async function like(req, res) {
   const [err, card] = await to(
     CardModel.findByIdAndUpdate(
       req.params.id, { $addToSet: { likes: req.user._id } }, { new: true },
@@ -87,9 +85,9 @@ module.exports.like = async (req, res) => {
   }
 
   return res.send(card);
-};
+}
 
-module.exports.dislike = async (req, res) => {
+async function dislike(req, res) {
   const [err, card] = await to(
     CardModel.findByIdAndUpdate(req.params.id, { $pull: { likes: req.user._id } }, { new: true }),
   );
@@ -100,4 +98,8 @@ module.exports.dislike = async (req, res) => {
   }
 
   return res.send(card);
+}
+
+module.exports = {
+  getAllCards, getCardById, createCard, deleteCard, updateCard, like, dislike,
 };
