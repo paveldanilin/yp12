@@ -10,7 +10,7 @@ const cardRoutes = require('./routes/cards');
 
 require('./db').init();
 
-const { PORT = 3000 } = process.env;
+const { PORT = 3000, TEST_USER_ID = null } = process.env;
 const app = express();
 
 app.use(helmet());
@@ -21,7 +21,7 @@ app.use(logReq);
 app.use((req, res, next) => {
   const yourTestUserId = '';
   req.user = {
-    _id: process.env.TEST_USER_ID || yourTestUserId,
+    _id: TEST_USER_ID || yourTestUserId,
   };
   next();
 });
