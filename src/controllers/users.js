@@ -2,11 +2,23 @@ const UserModel = require('../models/user');
 const logger = require('../logger');
 const to = require('../utils/to');
 
+function decodeUserErrors(errors) {
+  return Object.keys(errors).map((key) => `Ошибка в поле [${key}]: ${errors[key].message}`);
+}
+
+async function usernameExists(name) {
+  const [, user] = await to(UserModel.findOne({ name }));
+  if (user) {
+    return true;
+  }
+  return false;
+}
+
 async function getAllUsers(req, res) {
   const [err, users] = await to(UserModel.find({}, '-password -tokens'));
 
   if (!users) {
-    logger.instance.error(`Could not get users. Reason: ${err}`);
+    logger.instance.error(`Could not get users. ${err}`);
     return res.status(500).send({ message: 'Ошибка получения списка пользователей' });
   }
 
@@ -17,7 +29,7 @@ async function getUserById(req, res) {
   const [err, user] = await to(UserModel.findById(req.params.id, '-password -tokens'));
 
   if (!user) {
-    logger.instance.error(`Could not get user with id ${req.params.id}. Reason: ${err}`);
+    logger.instance.error(`Could not get user with id ${req.params.id}. ${err}`);
     return res.status(404).send({ message: 'Ошибка при извлечении пользователя' });
   }
 
@@ -25,10 +37,17 @@ async function getUserById(req, res) {
 }
 
 async function createUser(req, res) {
+  const isUserExists = await usernameExists(req.body.name);
+  if (isUserExists) {
+    return res.status(404).send({ message: 'Пользователь с таким именем уже существует' });
+  }
   const [err, user] = await to(UserModel.create(req.body));
   if (!user) {
-    logger.instance.error(`Could not create user. Reason: ${err}`);
-    return res.status(500).send({ message: 'Ошибка при создании пользователя' });
+    logger.instance.error(`Could not create user. ${err}`);
+    return res.status(500).send({
+      message: 'Ошибка при создании пользователя',
+      errors: decodeUserErrors(err.errors),
+    });
   }
   const token = await user.createToken();
   return res.status(201).send({ user, token });

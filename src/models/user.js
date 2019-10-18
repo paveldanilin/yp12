@@ -28,7 +28,7 @@ const schema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    // required: true,
     minlength: 7,
   },
   tokens: [{
@@ -39,21 +39,24 @@ const schema = new mongoose.Schema({
   }],
 });
 
-schema.pre('save', async (next) => {
+async function preSave(next) {
   const user = this;
   if (user.isModified('password')) {
     user.password = await bcrypt.hash(user.password, 8);
   }
   next();
-});
+}
 
-schema.methods.createToken = async () => {
+async function createToken() {
   const user = this;
   const token = jwt.sign({ _id: user._id }, process.env.JWT_KEY);
   user.tokens = user.tokens.concat({ token });
   await user.save();
   return token;
-};
+}
+
+schema.pre('save', preSave);
+schema.methods.createToken = createToken;
 
 schema.statics.loadUserByCredentials = async (name, password) => {
   const user = await this.findOne({ name });

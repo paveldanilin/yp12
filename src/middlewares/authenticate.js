@@ -1,3 +1,4 @@
+const logger = require('../logger');
 const UserModel = require('../models/user');
 
 function authenticateByHeader(req, res, next) {
@@ -23,8 +24,13 @@ function authenticateByTestId(testUserId, req, res, next) {
 }
 
 module.exports = (req, res, next) => {
-  if (process.env.TEST_USER_ID && process.env.TEST_USER_ID.trim().length > 0) {
+  const testUserId = process.env.TEST_USER_ID;
+  if (testUserId && testUserId.trim().length > 0) {
+    logger.instance.debug(
+      `Test user id is defined in the .env file, going to call an authenticate stub. [${testUserId}]`,
+    );
     return authenticateByTestId(process.env.TEST_USER_ID, res, req, next);
   }
+  logger.instance.debug('Going to call authenticate by token');
   return authenticateByHeader(req, req, next);
 };
