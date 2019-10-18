@@ -39,7 +39,7 @@ const schema = new mongoose.Schema({
   }],
 });
 
-schema.pre('save', async function (next) {
+schema.pre('save', async (next) => {
   const user = this;
   if (user.isModified('password')) {
     user.password = await bcrypt.hash(user.password, 8);
@@ -47,7 +47,7 @@ schema.pre('save', async function (next) {
   next();
 });
 
-schema.methods.createToken = async function () {
+schema.methods.createToken = async () => {
   const user = this;
   const token = jwt.sign({ _id: user._id }, process.env.JWT_KEY);
   user.tokens = user.tokens.concat({ token });
