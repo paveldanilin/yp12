@@ -2,6 +2,14 @@ const CardModel = require('../models/card');
 const logger = require('../logger');
 const to = require('../utils/to');
 
+async function cardExists(name) {
+  const [, card] = await to(CardModel.findOne({ name }));
+  if (card) {
+    return true;
+  }
+  return false;
+}
+
 async function getAllCards(req, res) {
   const [err, cards] = await to(
     CardModel
@@ -37,6 +45,11 @@ async function getCardById(req, res) {
 async function createCard(req, res) {
   const { name, link } = req.body;
 
+  const isCardExists = await cardExists(name);
+  if (isCardExists) {
+    return res.status(400).send({ message: 'Карточка с таким именем уже существует' });
+  }
+
   const [err, card] = await to(CardModel.create({ name, link, owner: req.user._id }));
 
   if (!card) {
@@ -58,7 +71,6 @@ async function deleteCard(req, res) {
   logger.instance.info(`Card with id ${req.params.id} has been deleted`);
   return res.send({ message: 'Карточка удален' });
 }
-
 
 async function updateCard(req, res) {
   const [, card] = await to(
