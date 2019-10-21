@@ -8,10 +8,7 @@ function decodeUserErrors(errors) {
 
 async function usernameExists(name) {
   const [, user] = await to(UserModel.findOne({ name }));
-  if (user) {
-    return true;
-  }
-  return false;
+  return Boolean(user);
 }
 
 async function getAllUsers(req, res) {

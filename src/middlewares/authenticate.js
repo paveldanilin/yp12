@@ -29,8 +29,8 @@ module.exports = (req, res, next) => {
     logger.instance.debug(
       `Test user id is defined in the .env file, going to call an authenticate stub. [${testUserId}]`,
     );
-    return authenticateByTestId(process.env.TEST_USER_ID, res, req, next);
+    return authenticateByTestId(process.env.TEST_USER_ID, req, res, next);
   }
   logger.instance.debug('Going to call authenticate by token');
-  return authenticateByHeader(req, req, next);
+  return authenticateByHeader(req, res, next);
 };
