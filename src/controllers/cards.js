@@ -4,11 +4,8 @@ const to = require('../utils/to');
 const successOrError = require('../utils/successOrError');
 
 async function cardExists(name) {
-  const [, card] = await to(CardModel.findOne({ name }));
-  if (card) {
-    return true;
-  }
-  return false;
+  const result = await successOrError(CardModel.findOne({ name }));
+  return result === true;
 }
 
 async function getAllCards(req, res) {
