@@ -108,12 +108,12 @@ async function pathMeAvatar(req, res) {
 }
 
 async function login(req, res) {
-  const { name, password } = req.body;
+  const { email, password } = req.body;
   let user = null;
   let token = null;
 
   try {
-    user = await UserModel.loadUserByCredentials(name, password);
+    user = await UserModel.loadUserByCredentials(email, password);
   } catch (e) {
     logger.instance.error(`Could not login user, ${e.toString()}`);
     return res.status(401).send({ message: 'Неизвестный пользователь' });

@@ -26,6 +26,15 @@ const schema = new mongoose.Schema({
       }
     },
   },
+  email: {
+    type: String,
+    unique: true,
+    validate: (value) => {
+      if (!validator.isEmail(value)) {
+        throw new Error('Bad email');
+      }
+    },
+  },
   password: {
     type: String,
     // required: true,
@@ -49,7 +58,8 @@ async function preSave(next) {
 
 async function createToken() {
   const user = this;
-  const token = jwt.sign({ _id: user._id }, process.env.JWT_KEY);
+  const payload = { _id: user._id };
+  const token = jwt.sign(payload, process.env.JWT_KEY, { expiresIn: process.env.JWT_EXPIRES_IN });
   user.tokens = user.tokens.concat({ token });
   await user.save();
   return token;
@@ -58,10 +68,10 @@ async function createToken() {
 schema.pre('save', preSave);
 schema.methods.createToken = createToken;
 
-schema.statics.loadUserByCredentials = async (name, password) => {
-  const user = await this.findOne({ name });
+schema.statics.loadUserByCredentials = async (email, password) => {
+  const user = await this.findOne({ email });
   if (!user) {
-    throw new Error('Invalid login credentials');
+    throw new Error('Unknown user');
   }
   const isPasswordMatch = await bcrypt.compare(password, user.password);
   if (!isPasswordMatch) {

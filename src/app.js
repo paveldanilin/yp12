@@ -3,31 +3,29 @@ const helmet = require('helmet');
 const express = require('express');
 const bodyParser = require('body-parser');
 const logger = require('./logger');
+
 const logReq = require('./middlewares/logreq');
+const auth = require('./middlewares/auth');
 const resourceNotFound = require('./middlewares/resourcenotfound');
 const userRoutes = require('./routes/users');
 const cardRoutes = require('./routes/cards');
+const loginRouter = require('./routes/login');
 
 require('./db').init();
 
-const { PORT = 3000, TEST_USER_ID = null } = process.env;
+const { PORT = 3000 } = process.env;
 const app = express();
 
 app.use(helmet());
 app.use(cors());
 app.use(logReq);
-
-// вставьте сюда _id созданного в предыдущем пункте пользователя
-app.use((req, res, next) => {
-  const yourTestUserId = '';
-  req.user = {
-    _id: TEST_USER_ID || yourTestUserId,
-  };
-  next();
-});
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(loginRouter);
+
+app.use(auth);
+
 app.use(cardRoutes);
 app.use(userRoutes);
 app.use(resourceNotFound);
