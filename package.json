@@ -18,7 +18,7 @@
     "winston": "3.2.1",
     "webpack-node-externals": "1.7.2",
     "moment-timezone": "0.5.26",
-    "mongoose": "5.7.4",
+    "mongoose": "5.7.7",
     "bcryptjs": "2.4.3",
     "validator": "11.1.0",
     "jsonwebtoken": "8.5.1",
