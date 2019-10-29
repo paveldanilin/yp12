@@ -38,16 +38,19 @@ async function createUser(req, res) {
   if (isUserExists) {
     return res.status(400).send({ message: 'Пользователь с таким именем уже существует' });
   }
+
   const [err, user] = await to(UserModel.create(req.body));
+
   if (!user) {
     logger.instance.error(`Could not create user. ${err}`);
     return res.status(500).send({
       message: 'Ошибка при создании пользователя',
-      errors: decodeUserErrors(err.errors),
+      errors: decodeUserErrors(err.errors || [err]),
     });
   }
+
   const token = await user.createToken();
-  return res.status(201).send({ user, token });
+  return res.status(201).send({ token });
 }
 
 async function deleteUser(req, res) {
@@ -59,7 +62,6 @@ async function deleteUser(req, res) {
   logger.instance.info(`User with id ${req.params.id} has been deleted`);
   return res.send({ message: 'Пользователь удален' });
 }
-
 
 async function updateUser(req, res) {
   const [, user] = await to(UserModel.findByIdAndUpdate(req.params.id, req.body));
@@ -108,12 +110,12 @@ async function pathMeAvatar(req, res) {
 }
 
 async function login(req, res) {
-  const { name, password } = req.body;
+  const { email, password } = req.body;
   let user = null;
   let token = null;
 
   try {
-    user = await UserModel.loadUserByCredentials(name, password);
+    user = await UserModel.loadUserByCredentials(email, password);
   } catch (e) {
     logger.instance.error(`Could not login user, ${e.toString()}`);
     return res.status(401).send({ message: 'Неизвестный пользователь' });
@@ -126,7 +128,7 @@ async function login(req, res) {
     return res.status(500).send({ message: 'Ошибка генерации токена' });
   }
 
-  return res.send({ user, token });
+  return res.send({ token });
 }
 
 module.exports = {

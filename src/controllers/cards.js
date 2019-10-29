@@ -2,14 +2,6 @@ const CardModel = require('../models/card');
 const logger = require('../logger');
 const to = require('../utils/to');
 
-async function cardExists(name) {
-  const [, card] = await to(CardModel.findOne({ name }));
-  if (card) {
-    return true;
-  }
-  return false;
-}
-
 async function getAllCards(req, res) {
   const [err, cards] = await to(
     CardModel
@@ -45,8 +37,12 @@ async function getCardById(req, res) {
 async function createCard(req, res) {
   const { name, link } = req.body;
 
-  const isCardExists = await cardExists(name);
-  if (isCardExists) {
+  if (!name && !link) {
+    return res.status(400).send({ message: 'Не заданы параметры карточки `name` и `link`' });
+  }
+
+  const isCardExists = await CardModel.exists({ name });
+  if (isCardExists === true) {
     return res.status(400).send({ message: 'Карточка с таким именем уже существует' });
   }
 
@@ -61,11 +57,26 @@ async function createCard(req, res) {
 }
 
 async function deleteCard(req, res) {
-  const [, query] = await to(CardModel.findByIdAndRemove(req.params.id));
+  const [, card] = await to(CardModel.findById(req.params.id));
 
-  if (!query) {
+  if (!card) {
     logger.instance.error(`Could not delete unknown card with id ${req.params.id}`);
     return res.status(404).send({ message: 'Карточка не найдена' });
+  }
+
+  if (String(card.owner._id) !== String(req.user._id)) {
+    logger.instance.error(
+      `User [${req.user._id}] does not have right to delete card [${req.params.id}].
+      Card belongs to ${card.owner._id}`,
+    );
+    return res.status(403).send({ message: 'Вы можете удалить только свои карточки' });
+  }
+
+  const [delErr, delResult] = await to(CardModel.deleteOne({ _id: card._id }));
+
+  if (!delResult) {
+    logger.instance.error(`Could not delete card ${req.params.id}. ${delErr}`);
+    return res.status(500).send({ message: 'Ошибка при удалении карточки' });
   }
 
   logger.instance.info(`Card with id ${req.params.id} has been deleted`);
