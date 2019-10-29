@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const to = require('../utils/to');
 
 const schema = new mongoose.Schema({
   name: {
@@ -29,6 +30,7 @@ const schema = new mongoose.Schema({
   email: {
     type: String,
     unique: true,
+    required: true,
     validate: (value) => {
       if (!validator.isEmail(value)) {
         throw new Error('Bad email');
@@ -37,7 +39,7 @@ const schema = new mongoose.Schema({
   },
   password: {
     type: String,
-    // required: true,
+    required: true,
     minlength: 7,
   },
   tokens: [{
@@ -68,7 +70,7 @@ async function createToken() {
 schema.pre('save', preSave);
 schema.methods.createToken = createToken;
 
-schema.statics.loadUserByCredentials = async (email, password) => {
+async function loadUserByCredentials(email, password) {
   const user = await this.findOne({ email });
   if (!user) {
     throw new Error('Unknown user');
@@ -78,12 +80,21 @@ schema.statics.loadUserByCredentials = async (email, password) => {
     throw new Error('Bad password');
   }
   return user;
-};
+}
+schema.statics.loadUserByCredentials = loadUserByCredentials;
 
-schema.statics.loadUserByToken = (token) => {
+
+async function resolveToken(token) {
   const payload = jwt.verify(token, process.env.JWT_KEY);
-  return this.findOne({ _id: payload._id, 'tokens.token': token });
-};
+  const [err, user] = await to(this.find({ _id: payload._id, 'tokens.token': token }));
+
+  if (!user) {
+    throw new Error(`Could not resolve user by token. ${err}`);
+  }
+
+  return payload;
+}
+schema.statics.resolveToken = resolveToken;
 
 const UserModel = mongoose.model('User', schema);
 

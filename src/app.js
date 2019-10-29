@@ -5,7 +5,6 @@ const bodyParser = require('body-parser');
 const logger = require('./logger');
 
 const logReq = require('./middlewares/logreq');
-const auth = require('./middlewares/auth');
 const resourceNotFound = require('./middlewares/resourcenotfound');
 const userRoutes = require('./routes/users');
 const cardRoutes = require('./routes/cards');
@@ -23,9 +22,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(loginRouter);
-
-app.use(auth);
-
 app.use(cardRoutes);
 app.use(userRoutes);
 app.use(resourceNotFound);
