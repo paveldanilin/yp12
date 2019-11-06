@@ -1,10 +1,10 @@
 const UserModel = require('../models/user');
 const logger = require('../logger');
 const to = require('../utils/to');
-
-function decodeUserErrors(errors) {
-  return Object.keys(errors).map((key) => `Ошибка в поле [${key}]: ${errors[key].message}`);
-}
+const ServerError = require('../errors/server-error');
+const NotFound = require('../errors/not-found');
+const BadRequest = require('../errors/bad-request');
+const NotAuthorized = require('../errors/not-authorized');
 
 async function usernameExists(name) {
   const [, user] = await to(UserModel.findOne({ name }));
@@ -15,8 +15,7 @@ async function getAllUsers(req, res) {
   const [err, users] = await to(UserModel.find({}, '-password -tokens'));
 
   if (!users) {
-    logger.instance.error(`Could not get users. ${err}`);
-    return res.status(500).send({ message: 'Ошибка получения списка пользователей' });
+    throw new ServerError('Ошибка получения списка пользователей', `Could not get users. ${err}`);
   }
 
   return res.send(users);
@@ -26,8 +25,7 @@ async function getUserById(req, res) {
   const [err, user] = await to(UserModel.findById(req.params.id, '-password -tokens'));
 
   if (!user) {
-    logger.instance.error(`Could not get user with id ${req.params.id}. ${err}`);
-    return res.status(404).send({ message: 'Ошибка при извлечении пользователя' });
+    throw new NotFound('Ошибка при извлечении пользователя', `Could not get user with id ${req.params.id}. ${err}`);
   }
 
   return res.send(user);
@@ -36,30 +34,29 @@ async function getUserById(req, res) {
 async function createUser(req, res) {
   const isUserExists = await usernameExists(req.body.name);
   if (isUserExists) {
-    return res.status(400).send({ message: 'Пользователь с таким именем уже существует' });
+    throw new BadRequest('Пользователь с таким именем уже существует');
   }
 
   const [err, user] = await to(UserModel.create(req.body));
 
   if (!user) {
-    logger.instance.error(`Could not create user. ${err}`);
-    return res.status(500).send({
-      message: 'Ошибка при создании пользователя',
-      errors: decodeUserErrors(err.errors || [err]),
-    });
+    throw new ServerError('Ошибка при создании пользователя', `Could not create user. ${err}`);
   }
 
-  const token = await user.createToken();
-  return res.status(201).send({ token });
+  try {
+    const token = await user.createToken();
+    return res.status(201).send({ token });
+  } catch (e) {
+    throw new ServerError('Ошибка создания токена', `Could not create token ${e}`);
+  }
 }
 
 async function deleteUser(req, res) {
   const [, query] = await to(UserModel.findByIdAndRemove(req.params.id));
   if (!query) {
-    logger.instance.error(`Could not delete unknown user with id ${req.param.id}`);
-    return res.status(500).send({ message: 'Ошибка удаления пользователя' });
+    throw new ServerError('Ошибка удаления пользователя', `Could not delete unknown user with id ${req.param.id}`);
   }
-  logger.instance.info(`User with id ${req.params.id} has been deleted`);
+  logger.debugLogger.debug(`${req.requestId} - User with id ${req.params.id} has been deleted`);
   return res.send({ message: 'Пользователь удален' });
 }
 
@@ -67,11 +64,11 @@ async function updateUser(req, res) {
   const [, user] = await to(UserModel.findByIdAndUpdate(req.params.id, req.body));
 
   if (!user) {
-    logger.instance.error(`Could not update unknown user with id ${req.params.id}`);
-    return res.status(500).send({ message: 'Ошибка обновления пользователя' });
+    throw new ServerError('Ошибка обновления пользователя', `Could not update unknown user with id ${req.params.id}`);
   }
 
-  logger.instance.info(`User with id ${req.params.id} has been updated`);
+  logger.debugLogger.debug(`${req.requestId} - User with id ${req.params.id} has been updated`);
+
   return res.send(user);
 }
 
@@ -85,11 +82,14 @@ async function patchMe(req, res) {
   );
 
   if (!me) {
-    logger.instance.error(`Could not update unknown user with id ${req.user._id}.${err}`);
-    return res.status(500).send({ message: 'Ошибка обновления пользователя' });
+    throw new ServerError(
+      'Ошибка обновления пользователя',
+      `Could not update unknown user with id ${req.user._id}.${err}`,
+    );
   }
 
-  logger.instance.info(`User with id ${req.user._id} has been updated`);
+  logger.debugLogger.debug(`${req.requestId} - User with id ${req.user._id} has been updated`);
+
   return res.send(me);
 }
 
@@ -103,7 +103,7 @@ async function pathMeAvatar(req, res) {
   );
 
   if (!user) {
-    return res.status(404).send({ message: `Ошибка обновления пользователя. ${err}` });
+    throw new ServerError(`Ошибка обновления пользователя. ${err}`);
   }
 
   return res.send(user);
@@ -117,20 +117,21 @@ async function login(req, res) {
   try {
     user = await UserModel.loadUserByCredentials(email, password);
   } catch (e) {
-    logger.instance.error(`Could not login user, ${e.toString()}`);
-    return res.status(401).send({ message: 'Неизвестный пользователь' });
+    throw new NotAuthorized(
+      'Пользователь не зарегистрирован или неверный пароль',
+      `Could not login user, ${e.toString()}`,
+    );
   }
 
   try {
     token = await user.createToken();
   } catch (e) {
-    logger.instance.error('Could not create token');
-    return res.status(500).send({ message: 'Ошибка генерации токена' });
+    throw new ServerError('Ошибка генерации токена');
   }
 
   return res.send({ token });
 }
 
 module.exports = {
-  getAllUsers, getUserById, createUser, deleteUser, updateUser, login, patchMe, pathMeAvatar,
+  getAllUsers, getUserById, createUser, deleteUser, login, patchMe, pathMeAvatar, updateUser,
 };
