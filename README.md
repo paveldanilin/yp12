@@ -1,7 +1,8 @@
 ## Praktikum 15
 
 - IP: 84.201.172.46
-- http://yamesto.ml
+- http://yamesto.ml/signin
+- https://yamesto.ml/signup
 
 Настройки .env
 * NODE_ENV=

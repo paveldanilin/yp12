@@ -33,15 +33,11 @@ const schema = new mongoose.Schema({
 schema.statics.getSchema = () => Joi.object().keys({
   name: Joi.string().min(2).max(30),
   link: Joi.string().uri(),
-  owner: Joi.object(),
-  likes: Joi.array().items(Joi.object()),
 });
 
 schema.statics.getCreateSchema = () => Joi.object().keys({
   name: Joi.string().min(2).max(30).required(),
   link: Joi.string().uri().required(),
-  owner: Joi.object().required(),
-  likes: Joi.array().items(Joi.object()),
 });
 
 const CardModel = mongoose.model('Card', schema);
